@@ -1,2 +1,7 @@
 *.bat
 *.sh
+log/
+log_bak/
+record/
+result/
+params/global_config.go

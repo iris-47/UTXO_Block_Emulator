@@ -1,0 +1,1 @@
+ps aux|grep go|grep -v home|grep -v grep|awk '{print $2}'|xargs kill -9
