@@ -8,6 +8,8 @@ import (
 	"blockEmulator/params"
 	"blockEmulator/storage"
 	"blockEmulator/utils"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -28,12 +30,24 @@ type BlockChain struct {
 	CurrentBlock *core.Block         // the top block in this blockchain
 	Storage      *storage.Storage    // Storage is the bolt-db to store the blocks
 	Txpool       *core.TxPool        // the transaction pool
+	UTXOTxpool   *core.UTXOTxPool    // the utxo transaction pool
 	PartitionMap map[string]uint64   // the partition map which is defined by some algorithm can help account parition
 	pmlock       sync.RWMutex
 }
 
 // Get the transaction root, this root can be used to check the transactions
 func GetTxTreeRoot(txs []*core.Transaction) []byte {
+	// use a memory trie database to do this, instead of disk database
+	triedb := trie.NewDatabase(rawdb.NewMemoryDatabase())
+	transactionTree := trie.NewEmpty(triedb)
+	for _, tx := range txs {
+		transactionTree.Update(tx.TxHash, tx.Encode())
+	}
+	return transactionTree.Hash().Bytes()
+}
+
+// Get the transaction root, this root can be used to check the transactions
+func GetUTXOTxTreeRoot(txs []*core.UTXOTransaction) []byte {
 	// use a memory trie database to do this, instead of disk database
 	triedb := trie.NewDatabase(rawdb.NewMemoryDatabase())
 	transactionTree := trie.NewEmpty(triedb)
@@ -155,40 +169,58 @@ func (bc *BlockChain) GetUpdateStatusTrie(txs []*core.Transaction) common.Hash {
 
 // generate (mine) a block, this function return a block
 func (bc *BlockChain) GenerateBlock() *core.Block {
-	// pack the transactions from the txpool
-	txs := bc.Txpool.PackTxs(bc.ChainConfig.BlockSize)
 	bh := &core.BlockHeader{
 		ParentBlockHash: bc.CurrentBlock.Hash,
 		Number:          bc.CurrentBlock.Header.Number + 1,
 		Time:            time.Now(),
 	}
-	// handle transactions to build root
-	rt := bc.GetUpdateStatusTrie(txs)
+	var b *core.Block
+	if params.UTXO {
+		// pack the transactions from the txpool
+		txs := bc.UTXOTxpool.PackTxs(bc.ChainConfig.BlockSize)
+		bh.TxRoot = GetUTXOTxTreeRoot(txs)
+		// todo: Update UTXOSet
+		b = core.NewBlock(bh, nil, txs)
+	} else {
+		// pack the transactions from the txpool
+		txs := bc.Txpool.PackTxs(bc.ChainConfig.BlockSize)
+		// handle transactions to build root
+		rt := bc.GetUpdateStatusTrie(txs)
 
-	bh.StateRoot = rt.Bytes()
-	bh.TxRoot = GetTxTreeRoot(txs)
-	b := core.NewBlock(bh, txs)
-	b.Header.Miner = 0
+		bh.StateRoot = rt.Bytes()
+		bh.TxRoot = GetTxTreeRoot(txs)
+		b = core.NewBlock(bh, txs, nil)
+		b.Header.Miner = 0
+	}
 	b.Hash = b.Header.Hash()
 	return b
 }
 
 // new a genisis block, this func will be invoked only once for a blockchain object
 func (bc *BlockChain) NewGenisisBlock() *core.Block {
-	body := make([]*core.Transaction, 0)
 	bh := &core.BlockHeader{
 		Number: 0,
 	}
-	// build a new trie database by db
-	triedb := trie.NewDatabaseWithConfig(bc.db, &trie.Config{
-		Cache:     0,
-		Preimages: true,
-	})
-	bc.triedb = triedb
-	statusTrie := trie.NewEmpty(triedb)
-	bh.StateRoot = statusTrie.Hash().Bytes()
-	bh.TxRoot = GetTxTreeRoot(body)
-	b := core.NewBlock(bh, body)
+	var b *core.Block
+	if params.UTXO {
+		UTXO := make([]*core.UTXOTransaction, 0)
+		bh.TxRoot = GetUTXOTxTreeRoot(UTXO)
+		b = core.NewBlock(bh, nil, UTXO)
+
+	} else {
+		body := make([]*core.Transaction, 0)
+		// build a new trie database by db
+		triedb := trie.NewDatabaseWithConfig(bc.db, &trie.Config{
+			Cache:     0,
+			Preimages: true,
+		})
+		bc.triedb = triedb
+		statusTrie := trie.NewEmpty(triedb)
+		bh.StateRoot = statusTrie.Hash().Bytes()
+		bh.TxRoot = GetTxTreeRoot(body)
+		b = core.NewBlock(bh, body, nil)
+
+	}
 	b.Hash = b.Header.Hash()
 	return b
 }
@@ -214,7 +246,7 @@ func (bc *BlockChain) AddBlock(b *core.Block) {
 		return
 	}
 	// if this block is mined by the node, the transactions is no need to be handled again
-	if b.Header.Miner != bc.ChainConfig.NodeID {
+	if b.Header.Miner != bc.ChainConfig.NodeID && !params.UTXO {
 		rt := bc.GetUpdateStatusTrie(b.Body)
 		fmt.Println(bc.CurrentBlock.Header.Number+1, "the root = ", rt.Bytes())
 	}
@@ -230,6 +262,7 @@ func NewBlockChain(cc *params.ChainConfig, db ethdb.Database) (*BlockChain, erro
 		db:           db,
 		ChainConfig:  cc,
 		Txpool:       core.NewTxPool(),
+		UTXOTxpool:   core.NewUTXOTxPool(),
 		Storage:      storage.NewStorage(cc),
 		PartitionMap: make(map[string]uint64),
 	}
@@ -255,22 +288,25 @@ func NewBlockChain(cc *params.ChainConfig, db ethdb.Database) (*BlockChain, erro
 	}
 
 	bc.CurrentBlock = curb
-	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
-		Cache:     0,
-		Preimages: true,
-	})
-	bc.triedb = triedb
-	// check the existence of the trie database
-	_, err = trie.New(trie.TrieID(common.BytesToHash(curb.Header.StateRoot)), triedb)
-	if err != nil {
-		log.Panic()
+	if !params.UTXO {
+		triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
+			Cache:     0,
+			Preimages: true,
+		})
+		bc.triedb = triedb
+		// check the existence of the trie database
+		_, err = trie.New(trie.TrieID(common.BytesToHash(curb.Header.StateRoot)), triedb)
+		if err != nil {
+			log.Panic()
+		}
+		fmt.Println("The status trie can be built")
 	}
-	fmt.Println("The status trie can be built")
 	fmt.Println("Generated a new blockchain successfully")
 	return bc, nil
 }
 
 // check a block is valid or not in this blockchain config
+// todo, check the TxIn and TxOut
 func (bc *BlockChain) IsValidBlock(b *core.Block) error {
 	if string(b.Header.ParentBlockHash) != string(bc.CurrentBlock.Hash) {
 		fmt.Println("the parentblock hash is not equal to the current block hash")
@@ -280,6 +316,81 @@ func (bc *BlockChain) IsValidBlock(b *core.Block) error {
 		return errors.New("the transaction root is wrong")
 	}
 	return nil
+}
+
+func (bc *BlockChain) IsValidUTXOBlock(b *core.Block) error {
+	if string(b.Header.ParentBlockHash) != string(bc.CurrentBlock.Hash) {
+		fmt.Println("the parentblock hash is not equal to the current block hash")
+		return errors.New("the parentblock hash is not equal to the current block hash")
+	} else if string(GetUTXOTxTreeRoot(b.UTXO)) != string(b.Header.TxRoot) {
+		fmt.Println("the transaction root is wrong")
+		return errors.New("the transaction root is wrong")
+	}
+	return nil
+}
+
+// Generate a UTXO transaction, this function put here because it need the utxo set in blockchain
+func (bc *BlockChain) NewUTXOTransaction(from, to string, amount *big.Int) (*core.UTXOTransaction, *core.UTXOTransaction) {
+	var inputs []core.TxIn
+	var outputs []core.TxOut
+	var coinbase *core.UTXOTransaction = nil
+
+	Pubkey := []byte(from) //This is done temporarily as a makeshift solution.
+	SenderPubkeyHash := sha256.Sum256(Pubkey)
+
+	acc, validOutputs := bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+
+	if len(validOutputs) == 0 {
+		coinbase = core.NewCoinbaseTX(SenderPubkeyHash[:], amount)
+		bc.AddTx2UTXOSet(coinbase)
+		acc, validOutputs = bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+	}
+
+	if acc.Cmp(amount) == -1 {
+		return nil, nil
+	}
+
+	// Build a list of inputs
+	for txid, outindexs := range validOutputs {
+		txID, err := hex.DecodeString(txid)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		for _, outindex := range outindexs {
+			input := core.TxIn{
+				PrevTxId:  txID,
+				Index:     outindex,
+				Signature: nil,
+				PubKey:    Pubkey,
+			}
+			inputs = append(inputs, input)
+		}
+	}
+
+	// Build a list of outputs
+	receiver := sha256.Sum256([]byte(to))
+	output := core.TxOut{
+		Value:      amount,
+		PubKeyHash: receiver[:],
+	}
+	outputs = append(outputs, output)
+	if acc.Cmp(amount) == 1 {
+		change_output := core.TxOut{
+			Value:      new(big.Int).Sub(acc, amount),
+			PubKeyHash: SenderPubkeyHash[:],
+		}
+		outputs = append(outputs, change_output) // a change
+	}
+	// Build a Tx
+	tx := core.UTXOTransaction{
+		Vin:       inputs,
+		Vout:      outputs,
+		Recipient: to,
+	}
+	tx.TxId = tx.Hash()
+
+	return &tx, coinbase
 }
 
 // add accounts
@@ -324,7 +435,7 @@ func (bc *BlockChain) AddAccounts(ac []string, as []*core.AccountState) {
 	emptyTxs := make([]*core.Transaction, 0)
 	bh.StateRoot = rt.Bytes()
 	bh.TxRoot = GetTxTreeRoot(emptyTxs)
-	b := core.NewBlock(bh, emptyTxs)
+	b := core.NewBlock(bh, emptyTxs, nil)
 	b.Header.Miner = 0
 	b.Hash = b.Header.Hash()
 

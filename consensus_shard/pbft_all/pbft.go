@@ -143,11 +143,20 @@ func NewPbftNode(shardID, nodeID uint64, pcc *params.ChainConfig, messageHandleT
 			pbftNode: p,
 		}
 	default:
-		p.ihm = &RawRelayPbftExtraHandleMod{
-			pbftNode: p,
-		}
-		p.ohm = &RawRelayOutsideModule{
-			pbftNode: p,
+		if params.UTXO {
+			p.ihm = &RawUTXORelayPbftExtraHandleMod{
+				pbftNode: p,
+			}
+			p.ohm = &RawUTXORelayOutsideModule{
+				pbftNode: p,
+			}
+		} else {
+			p.ihm = &RawRelayPbftExtraHandleMod{
+				pbftNode: p,
+			}
+			p.ohm = &RawRelayOutsideModule{
+				pbftNode: p,
+			}
 		}
 	}
 

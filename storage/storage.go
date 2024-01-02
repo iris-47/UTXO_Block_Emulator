@@ -17,9 +17,10 @@ import (
 
 type Storage struct {
 	dbFilePath            string // path to the database
-	blockBucket           string // bucket in bolt database
-	blockHeaderBucket     string // bucket in bolt database
-	newestBlockHashBucket string // bucket in bolt database
+	blockBucket           string // bucket to store the block
+	blockHeaderBucket     string // bucket to store the block head
+	newestBlockHashBucket string // bucket to store the newest block hash
+	UTXOBucket            string // bucket to store the utxoset, {txid: outputs[]}, ignore the inputs in Txs
 	DataBase              *bolt.DB
 }
 
@@ -40,6 +41,7 @@ func NewStorage(cc *params.ChainConfig) *Storage {
 		blockBucket:           "block",
 		blockHeaderBucket:     "blockHeader",
 		newestBlockHashBucket: "newestBlockHash",
+		UTXOBucket:            "utxo",
 	}
 
 	db, err := bolt.Open(s.dbFilePath, 0600, nil)
@@ -62,6 +64,11 @@ func NewStorage(cc *params.ChainConfig) *Storage {
 		_, err = tx.CreateBucketIfNotExists([]byte(s.newestBlockHashBucket))
 		if err != nil {
 			log.Panic("create newestBlockHashBucket failed")
+		}
+
+		_, err = tx.CreateBucketIfNotExists([]byte(s.UTXOBucket))
+		if err != nil {
+			log.Panic("create utxoBucket failed")
 		}
 
 		return nil

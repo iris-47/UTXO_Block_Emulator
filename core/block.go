@@ -68,11 +68,12 @@ func (bh *BlockHeader) PrintBlockHeader() string {
 type Block struct {
 	Header *BlockHeader
 	Body   []*Transaction
+	UTXO   []*UTXOTransaction
 	Hash   []byte
 }
 
-func NewBlock(bh *BlockHeader, bb []*Transaction) *Block {
-	return &Block{Header: bh, Body: bb}
+func NewBlock(bh *BlockHeader, txs []*Transaction, utxos []*UTXOTransaction) *Block {
+	return &Block{Header: bh, Body: txs, UTXO: utxos}
 }
 
 func (b *Block) PrintBlock() string {

@@ -8,3 +8,8 @@ type Relay struct {
 	SenderShardID uint64
 	SenderSeq     uint64
 }
+type RelayUTXO struct {
+	Txs           []*core.UTXOTransaction
+	SenderShardID uint64
+	SenderSeq     uint64
+}
