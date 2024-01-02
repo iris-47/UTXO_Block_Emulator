@@ -96,7 +96,7 @@ func (rthm *RelayCommitteeModule) TxHandling() {
 	reader := csv.NewReader(txfile)
 	txlist := make([]*core.Transaction, 0) // save the txs in this epoch (round)
 
-	for {
+	for i := 0; i < params.TxInputCount; i++ {
 		data, err := reader.Read()
 		if err == io.EOF {
 			break
