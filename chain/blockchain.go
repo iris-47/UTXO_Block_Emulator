@@ -341,7 +341,7 @@ func (bc *BlockChain) NewUTXOTransaction(from, to string, amount *big.Int) (*cor
 	acc, validOutputs := bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
 
 	if len(validOutputs) == 0 {
-		coinbase = core.NewCoinbaseTX(SenderPubkeyHash[:], amount)
+		coinbase = core.NewCoinbaseTX(SenderPubkeyHash[:], amount, nil)
 		bc.AddTx2UTXOSet(coinbase)
 		acc, validOutputs = bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
 	}
@@ -389,6 +389,7 @@ func (bc *BlockChain) NewUTXOTransaction(from, to string, amount *big.Int) (*cor
 		Recipient: to,
 	}
 	tx.TxId = tx.Hash()
+	tx.TxHash = tx.Hash()
 
 	return &tx, coinbase
 }

@@ -109,7 +109,7 @@ func (tx UTXOTransaction) IsCoinbase() bool {
 
 // NewCoinbaseTX creates a new coinbase transaction
 // CoinbaseTx cannot be cross-shard, so the field "Recepient" can be ignored
-func NewCoinbaseTX(PubkeyHash []byte, val *big.Int) *UTXOTransaction {
+func NewCoinbaseTX(PubkeyHash []byte, val *big.Int, TxHash []byte) *UTXOTransaction {
 	txin := TxIn{[]byte{}, -1, nil, []byte{}}
 	txout := TxOut{val, PubkeyHash}
 	tx := UTXOTransaction{
@@ -119,6 +119,11 @@ func NewCoinbaseTX(PubkeyHash []byte, val *big.Int) *UTXOTransaction {
 	randomGenerator := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = randomGenerator.Int63()
 	tx.TxId = tx.Hash()
+	if TxHash != nil {
+		tx.TxHash = TxHash //  Its a relay tx
+	} else {
+		tx.TxHash = tx.Hash()
+	}
 
 	return &tx
 }

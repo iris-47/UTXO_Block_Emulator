@@ -102,6 +102,7 @@ func (d *Supervisor) handleBlockInfos(content []byte) {
 	}
 	// StopSignal check
 	if bim.BlockBodyLength == 0 {
+		d.sl.Slog.Printf("received empty block from shard %d Epoch %d.\n", bim.SenderShardID, bim.Epoch)
 		d.Ss.StopGap_Inc()
 	} else {
 		d.Ss.StopGap_Reset()

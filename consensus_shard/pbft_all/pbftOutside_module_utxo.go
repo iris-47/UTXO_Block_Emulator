@@ -36,7 +36,7 @@ func (rrom *RawUTXORelayOutsideModule) handleRelay(content []byte) {
 	newTxs := []*core.UTXOTransaction{}
 	for _, tx := range relay.Txs {
 		for _, out := range tx.Vout {
-			coinbaseTx := core.NewCoinbaseTX(out.PubKeyHash, out.Value)
+			coinbaseTx := core.NewCoinbaseTX(out.PubKeyHash, out.Value, tx.TxHash)
 			newTxs = append(newTxs, coinbaseTx)
 		}
 	}

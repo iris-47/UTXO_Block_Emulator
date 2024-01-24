@@ -71,6 +71,7 @@ func (rphm *RawUTXORelayPbftExtraHandleMod) HandleinCommit(cmsg *message.Commit)
 		for _, tx := range block.UTXO {
 			// Coinbase Tx cannot be Relay Tx
 			if tx.IsCoinbase() {
+				txExcuted = append(txExcuted, tx)
 				continue
 			}
 			rsid := rphm.pbftNode.CurChain.Get_PartitionMap(tx.Recipient)
