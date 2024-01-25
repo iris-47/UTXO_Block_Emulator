@@ -1,8 +1,8 @@
 package params
 
 var (
-	UTXO                = true
-	TxInputCount        = 10000
+	UTXO                = false
+	TxInputCount        = 20000
 	Block_Interval      = 1000   // generate new block interval
 	MaxBlockSize_global = 500    // the block contains the maximum number of transactions
 	InjectSpeed         = 500    // the transaction inject speed

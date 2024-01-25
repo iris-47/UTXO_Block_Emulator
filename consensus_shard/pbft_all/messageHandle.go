@@ -3,6 +3,7 @@ package pbft_all
 import (
 	"blockEmulator/message"
 	"blockEmulator/networks"
+	"blockEmulator/params"
 	"blockEmulator/shard"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,11 @@ import (
 
 // this func is only invoked by main node
 func (p *PbftConsensusNode) Propose() {
+	if params.UTXO {
+		p.pl.Plog.Printf("S%dN%d working in UTXO mod...\n", p.ShardID, p.NodeID)
+	} else {
+		p.pl.Plog.Printf("S%dN%d working in Account mod...\n", p.ShardID, p.NodeID)
+	}
 	if p.view != p.NodeID {
 		return
 	}

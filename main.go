@@ -2,6 +2,7 @@ package main
 
 import (
 	"blockEmulator/build"
+	"blockEmulator/params"
 
 	"github.com/spf13/pflag"
 )
@@ -14,6 +15,7 @@ var (
 	modID    int
 	isClient bool
 	isGen    bool
+	useUTXO  bool
 )
 
 func main() {
@@ -24,11 +26,16 @@ func main() {
 	pflag.IntVarP(&modID, "modID", "m", 3, "choice Committee Method,for example, 0, [CLPA_Broker,CLPA,Broker,Relay] ")
 	pflag.BoolVarP(&isClient, "client", "c", false, "whether this node is a client")
 	pflag.BoolVarP(&isGen, "gen", "g", false, "generation bat")
+	pflag.BoolVarP(&useUTXO, "utxo", "u", false, "use utxo")
 	pflag.Parse()
 
+	if useUTXO {
+		params.UTXO = true
+	}
+
 	if isGen {
-		build.GenerateBatFile(nodeNum, shardNum, modID)
-		build.GenerateShellFile(nodeNum, shardNum, modID)
+		build.GenerateBatFile(nodeNum, shardNum, modID, useUTXO)
+		build.GenerateShellFile(nodeNum, shardNum, modID, useUTXO)
 		return
 	}
 
