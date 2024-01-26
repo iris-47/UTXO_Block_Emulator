@@ -39,7 +39,7 @@ for sid := uint64(0); sid < rphm.pbftNode.pbftChainConfig.ShardNums; sid++ {
         }
         msg_send := message.MergeMessage(message.CRelay, rByte)
         go networks.TcpDial(msg_send, rphm.pbftNode.ip_nodeTable[sid][0])
-        rphm.pbftNode.pl.Plog.Printf("S%dN%d : sended relay txs to %d\n", rphm.pbftNode.ShardID, rphm.pbftNode.NodeID, sid)
+        rphm.pbftNode.pl.Nlog.Printf("S%dN%d : sended relay txs to %d\n", rphm.pbftNode.ShardID, rphm.pbftNode.NodeID, sid)
 }
 rphm.pbftNode.CurChain.Txpool.ClearRelayPool()
 ```
@@ -54,12 +54,12 @@ func (rrom *RawRelayOutsideModule) handleRelay(content []byte) {
     if err != nil {
        log.Panic(err)
     }
-    rrom.pbftNode.pl.Plog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
+    rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
     rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(relay.Txs)
     rrom.pbftNode.seqMapLock.Lock()
     rrom.pbftNode.seqIDMap[relay.SenderShardID] = relay.SenderSeq
     rrom.pbftNode.seqMapLock.Unlock()
-    rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
+    rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
 }
 ```
 

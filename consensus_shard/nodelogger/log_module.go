@@ -1,4 +1,4 @@
-package pbft_log
+package node_log
 
 import (
 	"blockEmulator/params"
@@ -9,11 +9,11 @@ import (
 	"strconv"
 )
 
-type PbftLog struct {
-	Plog *log.Logger
+type NodeLog struct {
+	Nlog *log.Logger
 }
 
-func NewPbftLog(sid, nid uint64) *PbftLog {
+func NewLogger(sid, nid uint64) *NodeLog {
 	pfx := fmt.Sprintf("S%dN%d: ", sid, nid)
 	writer1 := os.Stdout
 
@@ -29,7 +29,7 @@ func NewPbftLog(sid, nid uint64) *PbftLog {
 	pl := log.New(io.MultiWriter(writer1, writer2), pfx, log.Lshortfile|log.Ldate|log.Ltime)
 	fmt.Println()
 
-	return &PbftLog{
-		Plog: pl,
+	return &NodeLog{
+		Nlog: pl,
 	}
 }

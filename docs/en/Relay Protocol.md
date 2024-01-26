@@ -48,7 +48,7 @@ After the node completes the traversal processing of all pre-committed transacti
 14        }
 15        msg_send := message.MergeMessage (message.CRelay, rByte)
 16        go networks.TcpDial(msg_send, rphm.pbftNode.ip_nodeTable[sid][0])
-17        rphm.pbftNode.pl.Plog.Printf("S%dN%d : sended relay txs to %d\n", rphm.pbftNode.ShardID, rphm.pbftNode.NodeID, sid)
+17        rphm.pbftNode.pl.Nlog.Printf("S%dN%d : sended relay txs to %d\n", rphm.pbftNode.ShardID, rphm.pbftNode.NodeID, sid)
 18 }
 19 rphm.pbftNode.CurChain.Txpool.ClearRelayPool()
 ```
@@ -64,12 +64,12 @@ Once Cross-shard transaction processing node detected **message.Relay**, it will
 5    if err != nil {
 6       log.Panic(err)
 7    }
-8    rrom.pbftNode.pl.Plog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
+8    rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
 9    rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(relay.Txs)
 10    rrom.pbftNode.seqMapLock.Lock()
 11   rrom.pbftNode.seqIDMap[relay.SenderShardID] = relay.SenderSeq
 12    rrom.pbftNode.seqMapLock.Unlock()
-13    rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
+13    rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
 14 }
 ```
 ## 5. same to step 2

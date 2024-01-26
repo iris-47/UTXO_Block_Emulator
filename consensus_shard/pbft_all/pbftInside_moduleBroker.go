@@ -35,10 +35,10 @@ func (rbhm *RawBrokerPbftExtraHandleMod) HandleinPropose() (bool, *message.Reque
 // the diy operation in preprepare
 func (rbhm *RawBrokerPbftExtraHandleMod) HandleinPrePrepare(ppmsg *message.PrePrepare) bool {
 	if rbhm.pbftNode.CurChain.IsValidBlock(core.DecodeB(ppmsg.RequestMsg.Msg.Content)) != nil {
-		rbhm.pbftNode.pl.Plog.Printf("S%dN%d : not a valid block\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
+		rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : not a valid block\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
 		return false
 	}
-	rbhm.pbftNode.pl.Plog.Printf("S%dN%d : the pre-prepare message is correct, putting it into the RequestPool. \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
+	rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : the pre-prepare message is correct, putting it into the RequestPool. \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
 	rbhm.pbftNode.requestPool[string(ppmsg.Digest)] = ppmsg.RequestMsg
 	// merge to be a prepare message
 	return true
@@ -55,15 +55,15 @@ func (rbhm *RawBrokerPbftExtraHandleMod) HandleinCommit(cmsg *message.Commit) bo
 	r := rbhm.pbftNode.requestPool[string(cmsg.Digest)]
 	// requestType ...
 	block := core.DecodeB(r.Msg.Content)
-	rbhm.pbftNode.pl.Plog.Printf("S%dN%d : adding the block %d...now height = %d \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number, rbhm.pbftNode.CurChain.CurrentBlock.Header.Number)
+	rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : adding the block %d...now height = %d \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number, rbhm.pbftNode.CurChain.CurrentBlock.Header.Number)
 	rbhm.pbftNode.CurChain.AddBlock(block)
-	rbhm.pbftNode.pl.Plog.Printf("S%dN%d : added the block %d... \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number)
+	rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : added the block %d... \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number)
 	rbhm.pbftNode.CurChain.PrintBlockChain()
 
 	// now try to relay txs to other shards (for main nodes)
 	if rbhm.pbftNode.NodeID == rbhm.pbftNode.view {
 		// do normal operations for block
-		rbhm.pbftNode.pl.Plog.Printf("S%dN%d : main node is trying to send relay txs at height = %d \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number)
+		rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : main node is trying to send relay txs at height = %d \n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, block.Header.Number)
 		// generate brokertxs and collect txs excuted
 		txExcuted := make([]*core.Transaction, 0)
 		broker1Txs := make([]*core.Transaction, 0)
@@ -97,7 +97,7 @@ func (rbhm *RawBrokerPbftExtraHandleMod) HandleinCommit(cmsg *message.Commit) bo
 			}
 			msg_send := message.MergeMessage(message.CSeqIDinfo, sByte)
 			go networks.TcpDial(msg_send, rbhm.pbftNode.ip_nodeTable[sid][0])
-			rbhm.pbftNode.pl.Plog.Printf("S%dN%d : sended sequence ids to %d\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, sid)
+			rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : sended sequence ids to %d\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID, sid)
 		}
 		// send txs excuted in this block to the listener
 		// add more message to measure more metrics
@@ -119,7 +119,7 @@ func (rbhm *RawBrokerPbftExtraHandleMod) HandleinCommit(cmsg *message.Commit) bo
 		}
 		msg_send := message.MergeMessage(message.CBlockInfo, bByte)
 		go networks.TcpDial(msg_send, rbhm.pbftNode.ip_nodeTable[params.DeciderShard][0])
-		rbhm.pbftNode.pl.Plog.Printf("S%dN%d : sended excuted txs\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
+		rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : sended excuted txs\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
 		rbhm.pbftNode.CurChain.Txpool.GetLocked()
 		rbhm.pbftNode.writeCSVline([]string{strconv.Itoa(len(rbhm.pbftNode.CurChain.Txpool.TxQueue)), strconv.Itoa(len(txExcuted)), strconv.Itoa(int(bim.Relay1TxNum))})
 		rbhm.pbftNode.CurChain.Txpool.GetUnlocked()
@@ -135,7 +135,7 @@ func (rbhm *RawBrokerPbftExtraHandleMod) HandleReqestforOldSeq(*message.RequestO
 // the operation for sequential requests
 func (rbhm *RawBrokerPbftExtraHandleMod) HandleforSequentialRequest(som *message.SendOldMessage) bool {
 	if int(som.SeqStartHeight-som.SeqEndHeight) != len(som.OldRequest) {
-		rbhm.pbftNode.pl.Plog.Printf("S%dN%d : the SendOldMessage message is not enough\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
+		rbhm.pbftNode.pl.Nlog.Printf("S%dN%d : the SendOldMessage message is not enough\n", rbhm.pbftNode.ShardID, rbhm.pbftNode.NodeID)
 	} else { // add the block into the node pbft blockchain
 		for height := som.SeqStartHeight; height <= som.SeqEndHeight; height++ {
 			r := som.OldRequest[height-som.SeqStartHeight]

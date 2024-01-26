@@ -40,11 +40,11 @@ func (cbom *CLPABrokerOutsideModule) handleSeqIDinfos(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	cbom.pbftNode.pl.Plog.Printf("S%dN%d : has received SeqIDinfo from shard %d, the senderSeq is %d\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, sii.SenderShardID, sii.SenderSeq)
+	cbom.pbftNode.pl.Nlog.Printf("S%dN%d : has received SeqIDinfo from shard %d, the senderSeq is %d\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, sii.SenderShardID, sii.SenderSeq)
 	cbom.pbftNode.seqMapLock.Lock()
 	cbom.pbftNode.seqIDMap[sii.SenderShardID] = sii.SenderSeq
 	cbom.pbftNode.seqMapLock.Unlock()
-	cbom.pbftNode.pl.Plog.Printf("S%dN%d : has handled SeqIDinfo msg\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
+	cbom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled SeqIDinfo msg\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
 }
 
 func (cbom *CLPABrokerOutsideModule) handleInjectTx(content []byte) {
@@ -54,7 +54,7 @@ func (cbom *CLPABrokerOutsideModule) handleInjectTx(content []byte) {
 		log.Panic(err)
 	}
 	cbom.pbftNode.CurChain.Txpool.AddTxs2Pool(it.Txs)
-	cbom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, len(it.Txs))
+	cbom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, len(it.Txs))
 }
 
 // the leader received the partition message from listener/decider,
@@ -66,7 +66,7 @@ func (cbom *CLPABrokerOutsideModule) handlePartitionMsg(content []byte) {
 		log.Panic()
 	}
 	cbom.cdm.ModifiedMap = append(cbom.cdm.ModifiedMap, pm.PartitionModified)
-	cbom.pbftNode.pl.Plog.Printf("S%dN%d : has received partition message\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
+	cbom.pbftNode.pl.Nlog.Printf("S%dN%d : has received partition message\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
 	cbom.cdm.PartitionOn = true
 }
 
@@ -85,7 +85,7 @@ func (cbom *CLPABrokerOutsideModule) handlePartitionReady(content []byte) {
 	cbom.cdm.ReadySeq[pr.FromShard] = pr.NowSeqID
 	cbom.pbftNode.seqMapLock.Unlock()
 
-	cbom.pbftNode.pl.Plog.Printf("ready message from shard %d, seqid is %d\n", pr.FromShard, pr.NowSeqID)
+	cbom.pbftNode.pl.Nlog.Printf("ready message from shard %d, seqid is %d\n", pr.FromShard, pr.NowSeqID)
 }
 
 // when the message from other shard arriving, it should be added into the message pool
@@ -96,12 +96,12 @@ func (cbom *CLPABrokerOutsideModule) handleAccountStateAndTxMsg(content []byte) 
 		log.Panic()
 	}
 	cbom.cdm.AccountStateTx[at.FromShard] = at
-	cbom.pbftNode.pl.Plog.Printf("S%dN%d has added the accoutStateandTx from %d to pool\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, at.FromShard)
+	cbom.pbftNode.pl.Nlog.Printf("S%dN%d has added the accoutStateandTx from %d to pool\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID, at.FromShard)
 
 	if len(cbom.cdm.AccountStateTx) == int(cbom.pbftNode.pbftChainConfig.ShardNums)-1 {
 		cbom.cdm.CollectLock.Lock()
 		cbom.cdm.CollectOver = true
 		cbom.cdm.CollectLock.Unlock()
-		cbom.pbftNode.pl.Plog.Printf("S%dN%d has added all accoutStateandTx~~~\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
+		cbom.pbftNode.pl.Nlog.Printf("S%dN%d has added all accoutStateandTx~~~\n", cbom.pbftNode.ShardID, cbom.pbftNode.NodeID)
 	}
 }

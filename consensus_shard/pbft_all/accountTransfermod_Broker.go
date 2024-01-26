@@ -34,7 +34,7 @@ func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) sendPartitionReady() {
 			networks.TcpDial(send_msg, cphm.pbftNode.ip_nodeTable[uint64(sid)][0])
 		}
 	}
-	cphm.pbftNode.pl.Plog.Print("Ready for partition\n")
+	cphm.pbftNode.pl.Nlog.Print("Ready for partition\n")
 }
 
 // get whether all shards is ready, it will be invoked by InsidePBFT_Module
@@ -125,7 +125,7 @@ func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) sendAccounts_and_Txs() {
 		}
 		cphm.pbftNode.CurChain.Txpool.TxQueue = cphm.pbftNode.CurChain.Txpool.TxQueue[:firstPtr]
 
-		cphm.pbftNode.pl.Plog.Printf("The txSend to shard %d is generated \n", i)
+		cphm.pbftNode.pl.Nlog.Printf("The txSend to shard %d is generated \n", i)
 		ast := message.AccountStateAndTx{
 			Addrs:        addrSend,
 			AccountState: asSend,
@@ -138,7 +138,7 @@ func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) sendAccounts_and_Txs() {
 		}
 		send_msg := message.MergeMessage(message.CAccountTransferMsg_broker, aByte)
 		networks.TcpDial(send_msg, cphm.pbftNode.ip_nodeTable[i][0])
-		cphm.pbftNode.pl.Plog.Printf("The message to shard %d is sent\n", i)
+		cphm.pbftNode.pl.Nlog.Printf("The message to shard %d is sent\n", i)
 	}
 	cphm.pbftNode.CurChain.Txpool.GetUnlocked()
 
@@ -163,7 +163,7 @@ func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) getCollectOver() bool {
 
 // propose a partition message
 func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) proposePartition() (bool, *message.Request) {
-	cphm.pbftNode.pl.Plog.Printf("S%dN%d : begin partition proposing\n", cphm.pbftNode.ShardID, cphm.pbftNode.NodeID)
+	cphm.pbftNode.pl.Nlog.Printf("S%dN%d : begin partition proposing\n", cphm.pbftNode.ShardID, cphm.pbftNode.NodeID)
 	// add all data in pool into the set
 	for _, at := range cphm.cdm.AccountStateTx {
 		for i, addr := range at.Addrs {
@@ -205,7 +205,7 @@ func (cphm *CLPAPbftInsideExtraHandleMod_forBroker) accountTransfer_do(atm *mess
 		cnt++
 		cphm.pbftNode.CurChain.Update_PartitionMap(key, val)
 	}
-	cphm.pbftNode.pl.Plog.Printf("%d key-vals are updated\n", cnt)
+	cphm.pbftNode.pl.Nlog.Printf("%d key-vals are updated\n", cnt)
 	// add the account into the state trie
 	cphm.pbftNode.CurChain.AddAccounts(atm.Addrs, atm.AccountState)
 

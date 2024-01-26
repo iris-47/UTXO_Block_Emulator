@@ -31,12 +31,12 @@ func (rrom *RawRelayOutsideModule) handleRelay(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
 	rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(relay.Txs)
 	rrom.pbftNode.seqMapLock.Lock()
 	rrom.pbftNode.seqIDMap[relay.SenderShardID] = relay.SenderSeq
 	rrom.pbftNode.seqMapLock.Unlock()
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
 }
 
 func (rrom *RawRelayOutsideModule) handleInjectTx(content []byte) {
@@ -46,5 +46,5 @@ func (rrom *RawRelayOutsideModule) handleInjectTx(content []byte) {
 		log.Panic(err)
 	}
 	rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(it.Txs)
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
 }

@@ -32,7 +32,7 @@ func (rrom *RawUTXORelayOutsideModule) handleRelay(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has received relay txs from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, relay.SenderShardID, relay.SenderSeq)
 	newTxs := []*core.UTXOTransaction{}
 	for _, tx := range relay.Txs {
 		for _, out := range tx.Vout {
@@ -44,7 +44,7 @@ func (rrom *RawUTXORelayOutsideModule) handleRelay(content []byte) {
 	rrom.pbftNode.seqMapLock.Lock()
 	rrom.pbftNode.seqIDMap[relay.SenderShardID] = relay.SenderSeq
 	rrom.pbftNode.seqMapLock.Unlock()
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled %d relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(relay.Txs))
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled %d relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(relay.Txs))
 }
 
 // func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
@@ -69,7 +69,7 @@ func (rrom *RawUTXORelayOutsideModule) handleRelay(content []byte) {
 // 	}
 
 //		rrom.pbftNode.CurChain.UTXOTxpool.AddTxs2Pool(txs)
-//		rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(txs))
+//		rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(txs))
 //	}
 
 func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
@@ -79,5 +79,5 @@ func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
 		log.Panic(err)
 	}
 	rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(it.Txs)
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has been injected %d txs\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has been injected %d txs\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
 }

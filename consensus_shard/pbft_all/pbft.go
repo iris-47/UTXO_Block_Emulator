@@ -4,8 +4,8 @@ package pbft_all
 
 import (
 	"blockEmulator/chain"
+	node_log "blockEmulator/consensus_shard/nodelogger"
 	"blockEmulator/consensus_shard/pbft_all/dataSupport"
-	"blockEmulator/consensus_shard/pbft_all/pbft_log"
 	"blockEmulator/message"
 	"blockEmulator/networks"
 	"blockEmulator/params"
@@ -60,7 +60,7 @@ type PbftConsensusNode struct {
 	seqMapLock sync.Mutex
 
 	// logger
-	pl *pbft_log.PbftLog
+	pl *node_log.NodeLog
 	// tcp control
 	tcpln       net.Listener
 	tcpPoolLock sync.Mutex
@@ -111,7 +111,7 @@ func NewPbftNode(shardID, nodeID uint64, pcc *params.ChainConfig, messageHandleT
 
 	p.seqIDMap = make(map[uint64]uint64)
 
-	p.pl = pbft_log.NewPbftLog(shardID, nodeID)
+	p.pl = node_log.NewLogger(shardID, nodeID)
 
 	// choose how to handle the messages in pbft or beyond pbft
 	switch string(messageHandleType) {
@@ -236,7 +236,7 @@ func (p *PbftConsensusNode) OldTcpListen() {
 	if err != nil {
 		log.Panic(err)
 	}
-	p.pl.Plog.Printf("S%dN%d begins listening：%s\n", p.ShardID, p.NodeID, p.RunningNode.IPaddr)
+	p.pl.Nlog.Printf("S%dN%d begins listening：%s\n", p.ShardID, p.NodeID, p.RunningNode.IPaddr)
 
 	for {
 		if p.getStopSignal() {
@@ -259,7 +259,7 @@ func (p *PbftConsensusNode) OldTcpListen() {
 
 // when received stop
 func (p *PbftConsensusNode) WaitToStop() {
-	p.pl.Plog.Println("handling stop message")
+	p.pl.Nlog.Println("handling stop message")
 	p.stopLock.Lock()
 	p.stop = true
 	p.stopLock.Unlock()
@@ -269,7 +269,7 @@ func (p *PbftConsensusNode) WaitToStop() {
 	networks.CloseAllConnInPool()
 	p.tcpln.Close()
 	p.closePbft()
-	p.pl.Plog.Println("handled stop message")
+	p.pl.Nlog.Println("handled stop message")
 }
 
 func (p *PbftConsensusNode) getStopSignal() bool {

@@ -31,11 +31,11 @@ func (rrom *RawBrokerOutsideModule) handleSeqIDinfos(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has received SeqIDinfo from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, sii.SenderShardID, sii.SenderSeq)
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has received SeqIDinfo from shard %d, the senderSeq is %d\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, sii.SenderShardID, sii.SenderSeq)
 	rrom.pbftNode.seqMapLock.Lock()
 	rrom.pbftNode.seqIDMap[sii.SenderShardID] = sii.SenderSeq
 	rrom.pbftNode.seqMapLock.Unlock()
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled SeqIDinfo msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled SeqIDinfo msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
 }
 
 func (rrom *RawBrokerOutsideModule) handleInjectTx(content []byte) {
@@ -45,5 +45,5 @@ func (rrom *RawBrokerOutsideModule) handleInjectTx(content []byte) {
 		log.Panic(err)
 	}
 	rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(it.Txs)
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
+	rrom.pbftNode.pl.Nlog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
 }
