@@ -125,5 +125,5 @@ func (rthm *RelayCommitteeModule) TxHandling() {
 
 // no operation here
 func (rthm *RelayCommitteeModule) AdjustByBlockInfos(b *message.BlockInfoMsg) {
-	rthm.sl.Slog.Printf("received from shard %d in epoch %d.\n", b.SenderShardID, b.Epoch)
+	rthm.sl.Slog.Printf("received a block with %d txs from shard %d in epoch %d.\n", b.BlockBodyLength, b.SenderShardID, b.Epoch)
 }

@@ -1,6 +1,7 @@
 package pbft_all
 
 import (
+	"blockEmulator/core"
 	"blockEmulator/message"
 	"blockEmulator/networks"
 	"blockEmulator/params"
@@ -10,6 +11,45 @@ import (
 	"log"
 	"time"
 )
+
+// Trannsform Tx to UTXO Tx
+func (p *PbftConsensusNode) TxTransform() {
+	p.pl.Plog.Printf("S%dN%d : start Tx Transform! \n", p.ShardID, p.NodeID)
+	if p.view != p.NodeID {
+		return
+	}
+	for {
+		select {
+		case <-p.pStop:
+			p.pl.Plog.Printf("S%dN%d stop, stop TxTransform()...\n", p.ShardID, p.NodeID)
+			return
+		default:
+		}
+		injectedTxs := p.CurChain.Txpool.PackTxs(200)
+
+		txs := []*core.UTXOTransaction{}
+		for _, InjectTx := range injectedTxs {
+			tx, coinbase := p.CurChain.NewUTXOTransaction(InjectTx.Sender, InjectTx.Recipient, InjectTx.Value)
+			if coinbase != nil { // coinbase
+				txs = append(txs, coinbase)
+				txs = append(txs, tx)
+				p.CurChain.AddTx2UTXOSet(tx)
+			} else if tx == nil { // insufficient
+				continue
+			} else { // normal
+				txs = append(txs, tx)
+				p.CurChain.AddTx2UTXOSet(tx)
+			}
+		}
+
+		p.CurChain.UTXOTxpool.AddTxs2Pool(txs)
+
+		if len(injectedTxs) != 0 {
+			p.pl.Plog.Printf("S%dN%d : has transformed %d injected txs msg to %d UTXO Txs\n", p.ShardID, p.NodeID, len(injectedTxs), len(txs))
+		}
+
+	}
+}
 
 // this func is only invoked by main node
 func (p *PbftConsensusNode) Propose() {
@@ -24,7 +64,7 @@ func (p *PbftConsensusNode) Propose() {
 	for {
 		select {
 		case <-p.pStop:
-			p.pl.Plog.Printf("S%dN%d stop...\n", p.ShardID, p.NodeID)
+			p.pl.Plog.Printf("S%dN%d stop, stop Propose()...\n", p.ShardID, p.NodeID)
 			return
 		default:
 		}

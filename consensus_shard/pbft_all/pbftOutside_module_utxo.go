@@ -44,8 +44,33 @@ func (rrom *RawUTXORelayOutsideModule) handleRelay(content []byte) {
 	rrom.pbftNode.seqMapLock.Lock()
 	rrom.pbftNode.seqIDMap[relay.SenderShardID] = relay.SenderSeq
 	rrom.pbftNode.seqMapLock.Unlock()
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID)
+	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled %d relay txs msg\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(relay.Txs))
 }
+
+// func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
+// 	it := new(message.InjectTxs)
+// 	err := json.Unmarshal(content, it)
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
+// 	txs := []*core.UTXOTransaction{}
+// 	for _, InjectTx := range it.Txs {
+// 		tx, coinbase := rrom.pbftNode.CurChain.NewUTXOTransaction(InjectTx.Sender, InjectTx.Recipient, InjectTx.Value)
+// 		if coinbase != nil { // coinbase
+// 			txs = append(txs, coinbase)
+// 			txs = append(txs, tx)
+// 			rrom.pbftNode.CurChain.AddTx2UTXOSet(tx)
+// 		} else if tx == nil { // insufficient
+// 			continue
+// 		} else { // normal
+// 			txs = append(txs, tx)
+// 			rrom.pbftNode.CurChain.AddTx2UTXOSet(tx)
+// 		}
+// 	}
+
+//		rrom.pbftNode.CurChain.UTXOTxpool.AddTxs2Pool(txs)
+//		rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(txs))
+//	}
 
 func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
 	it := new(message.InjectTxs)
@@ -53,21 +78,6 @@ func (rrom *RawUTXORelayOutsideModule) handleInjectTx(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	txs := []*core.UTXOTransaction{}
-	for _, InjectTx := range it.Txs {
-		tx, coinbase := rrom.pbftNode.CurChain.NewUTXOTransaction(InjectTx.Sender, InjectTx.Recipient, InjectTx.Value)
-		if coinbase != nil { // coinbase
-			txs = append(txs, coinbase)
-			txs = append(txs, tx)
-			rrom.pbftNode.CurChain.AddTx2UTXOSet(tx)
-		} else if tx == nil { // insufficient
-			continue
-		} else { // normal
-			txs = append(txs, tx)
-			rrom.pbftNode.CurChain.AddTx2UTXOSet(tx)
-		}
-	}
-
-	rrom.pbftNode.CurChain.UTXOTxpool.AddTxs2Pool(txs)
-	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has handled injected txs msg, txs: %d \n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(txs))
+	rrom.pbftNode.CurChain.Txpool.AddTxs2Pool(it.Txs)
+	rrom.pbftNode.pl.Plog.Printf("S%dN%d : has been injected %d txs\n", rrom.pbftNode.ShardID, rrom.pbftNode.NodeID, len(it.Txs))
 }

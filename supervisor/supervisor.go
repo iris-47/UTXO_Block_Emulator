@@ -239,11 +239,11 @@ func (d *Supervisor) CloseSupervisor() {
 	for _, measureMod := range d.testMeasureMods {
 		targetPath := dirpath + measureMod.OutputMetricName() + ".csv"
 		f, err := os.Open(targetPath)
-		resultPerEpoch, totResult := measureMod.OutputRecord()
+		_, totResult := measureMod.OutputRecord()
 		resultStr := make([]string, 0)
-		for _, result := range resultPerEpoch {
-			resultStr = append(resultStr, strconv.FormatFloat(result, 'f', 8, 64))
-		}
+		// for _, result := range resultPerEpoch {
+		// 	resultStr = append(resultStr, strconv.FormatFloat(result, 'f', 8, 64))
+		// }
 		resultStr = append(resultStr, strconv.FormatFloat(totResult, 'f', 8, 64))
 		if err != nil && os.IsNotExist(err) {
 			file, er := os.Create(targetPath)

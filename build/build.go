@@ -54,6 +54,9 @@ func BuildSupervisor(nnm, snm, mod uint64) {
 func BuildNewPbftNode(nid, nnm, sid, snm, mod uint64) {
 	worker := pbft_all.NewPbftNode(sid, nid, initConfig(nid, nnm, sid, snm), params.CommitteeMethod[mod])
 	if nid == 0 {
+		if params.UTXO {
+			go worker.TxTransform()
+		}
 		go worker.Propose()
 		worker.TcpListen()
 	} else {

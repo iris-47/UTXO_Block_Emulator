@@ -69,21 +69,24 @@ func (tat *TestModule_avgTPS_Relay) HandleExtraMessage([]byte) {}
 
 // output the average TPS
 func (tat *TestModule_avgTPS_Relay) OutputRecord() (perEpochTPS []float64, totalTPS float64) {
+	var timeDuration float64
 	perEpochTPS = make([]float64, tat.epochID+1)
 	totalTxNum := 0.0
-	eTime := time.Now()
-	lTime := time.Time{}
+	// eTime := time.Now()
+	// lTime := time.Time{}
 	for eid, exTxNum := range tat.excutedTxNum {
 		timeGap := tat.endTime[eid].Sub(tat.startTime[eid]).Seconds()
 		perEpochTPS[eid] = exTxNum / timeGap
 		totalTxNum += exTxNum
-		if eTime.After(tat.startTime[eid]) {
-			eTime = tat.startTime[eid]
-		}
-		if tat.endTime[eid].After(lTime) {
-			lTime = tat.endTime[eid]
-		}
+		timeDuration += timeGap
+		// if eTime.After(tat.startTime[eid]) {
+		// 	eTime = tat.startTime[eid]
+		// }
+		// if tat.endTime[eid].After(lTime) {
+		// 	lTime = tat.endTime[eid]
+		// }
 	}
-	totalTPS = totalTxNum / (lTime.Sub(eTime).Seconds())
+	// totalTPS = totalTxNum / (lTime.Sub(eTime).Seconds())
+	totalTPS = totalTxNum / timeDuration
 	return
 }

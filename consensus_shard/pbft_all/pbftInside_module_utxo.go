@@ -86,7 +86,7 @@ func (rphm *RawUTXORelayPbftExtraHandleMod) HandleinCommit(cmsg *message.Commit)
 		}
 		// send relay txs
 		for sid := uint64(0); sid < rphm.pbftNode.pbftChainConfig.ShardNums; sid++ {
-			if sid == rphm.pbftNode.ShardID {
+			if sid == rphm.pbftNode.ShardID || len(rphm.pbftNode.CurChain.Txpool.RelayPool[sid]) == 0 {
 				continue
 			}
 			relay := message.RelayUTXO{
