@@ -12,6 +12,8 @@ type MessageType string
 type RequestType string
 
 const (
+	CPropose           MessageType = "propose"
+	CVote              MessageType = "vote"
 	CPrePrepare        MessageType = "preprepare"
 	CPrepare           MessageType = "prepare"
 	CCommit            MessageType = "commit"
@@ -40,6 +42,19 @@ type Request struct {
 	RequestType RequestType
 	Msg         RawMessage // request message
 	ReqTime     time.Time  // request time
+}
+
+type Propose struct {
+	RequestMsg *Request
+	Digest     []byte
+	SeqID      uint64
+}
+
+type Vote struct {
+	RequestMsg *Request
+	Digest     []byte
+	SeqID      uint64
+	SenderNode *shard.Node // To identify who send this message
 }
 
 type PrePrepare struct {

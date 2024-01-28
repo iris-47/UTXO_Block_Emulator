@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 )
 
 var absolute_path = getABpath()
@@ -56,10 +57,18 @@ func GenerateBatFile(nodenum, shardnum, modID int, isUTXO bool) {
 	}
 }
 
-func GenerateShellFile(nodenum, shardnum, modID int, isUTXO bool) {
-	fileName := fmt.Sprintf("bat_shardNum=%v_NodeNum=%v_mod=%v_%v.sh", shardnum, nodenum, params.CommitteeMethod[modID], isUTXO)
-	ofile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+func GenerateShellFile(nodenum, shardnum, modID int, isUTXO bool, useSyncHotstuff bool) {
 	var str string
+	var addons string
+	if isUTXO {
+		addons += " -u"
+	}
+	if useSyncHotstuff {
+		addons += " -h"
+	}
+	fileName := fmt.Sprintf("bat_shardNum=%v_NodeNum=%v_mod=%v_%v.sh", shardnum, nodenum, params.CommitteeMethod[modID], strings.Replace(addons, " -", "", -1))
+	ofile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+
 	if err != nil {
 		log.Panic(err)
 	}
@@ -68,27 +77,16 @@ func GenerateShellFile(nodenum, shardnum, modID int, isUTXO bool) {
 	ofile.WriteString(str1)
 	for j := 0; j < shardnum; j++ {
 		for i := 1; i < nodenum; i++ {
-			if isUTXO {
-				str = fmt.Sprintf("go run main.go -n %d -N %d -s %d -S %d -m %d -u &\n\n", i, nodenum, j, shardnum, modID)
-			} else {
-				str = fmt.Sprintf("go run main.go -n %d -N %d -s %d -S %d -m %d &\n\n", i, nodenum, j, shardnum, modID)
-			}
+			str = fmt.Sprintf("go run main.go -n %d -N %d -s %d -S %d -m %d %s &\n\n", i, nodenum, j, shardnum, modID, addons)
 			ofile.WriteString(str)
 		}
 	}
-	if isUTXO {
-		str = fmt.Sprintf("go run main.go -c -N %d -S %d -m %d -u &\n\n", nodenum, shardnum, modID)
-	} else {
-		str = fmt.Sprintf("go run main.go -c -N %d -S %d -m %d &\n\n", nodenum, shardnum, modID)
-	}
+
+	str = fmt.Sprintf("go run main.go -c -N %d -S %d -m %d %s&\n\n", nodenum, shardnum, modID, addons)
 
 	ofile.WriteString(str)
 	for j := 0; j < shardnum; j++ {
-		if isUTXO {
-			str = fmt.Sprintf("go run main.go -n 0 -N %d -s %d -S %d -m %d -u &\n\n", nodenum, j, shardnum, modID)
-		} else {
-			str = fmt.Sprintf("go run main.go -n 0 -N %d -s %d -S %d -m %d &\n\n", nodenum, j, shardnum, modID)
-		}
+		str = fmt.Sprintf("go run main.go -n 0 -N %d -s %d -S %d -m %d %s &\n\n", nodenum, j, shardnum, modID, addons)
 		ofile.WriteString(str)
 	}
 }

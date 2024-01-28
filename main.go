@@ -8,14 +8,15 @@ import (
 )
 
 var (
-	shardNum int
-	nodeNum  int
-	shardID  int
-	nodeID   int
-	modID    int
-	isClient bool
-	isGen    bool
-	useUTXO  bool
+	shardNum        int
+	nodeNum         int
+	shardID         int
+	nodeID          int
+	modID           int
+	isClient        bool
+	isGen           bool
+	useUTXO         bool
+	useSyncHotstuff bool
 )
 
 func main() {
@@ -27,21 +28,26 @@ func main() {
 	pflag.BoolVarP(&isClient, "client", "c", false, "whether this node is a client")
 	pflag.BoolVarP(&isGen, "gen", "g", false, "generation bat")
 	pflag.BoolVarP(&useUTXO, "utxo", "u", false, "use utxo")
+	pflag.BoolVarP(&useSyncHotstuff, "synchotstuff", "h", false, "use synchotstuff")
 	pflag.Parse()
 
 	if useUTXO {
 		params.UTXO = true
 	}
 
+	if useSyncHotstuff {
+		params.UseSyncHotstuff = true
+	}
+
 	if isGen {
-		build.GenerateBatFile(nodeNum, shardNum, modID, useUTXO)
-		build.GenerateShellFile(nodeNum, shardNum, modID, useUTXO)
+		// build.GenerateBatFile(nodeNum, shardNum, modID, useUTXO)
+		build.GenerateShellFile(nodeNum, shardNum, modID, useUTXO, useSyncHotstuff)
 		return
 	}
 
 	if isClient {
 		build.BuildSupervisor(uint64(nodeNum), uint64(shardNum), uint64(modID))
 	} else {
-		build.BuildNewPbftNode(uint64(nodeID), uint64(nodeNum), uint64(shardID), uint64(shardNum), uint64(modID))
+		build.BuildNewNode(uint64(nodeID), uint64(nodeNum), uint64(shardID), uint64(shardNum), uint64(modID))
 	}
 }

@@ -1,11 +1,13 @@
 package params
 
 var (
+	MaxLatency          = 50 // the maximum of network delay(ms)
 	UTXO                = false
+	UseSyncHotstuff     = false
 	TxInputCount        = 20000
 	Block_Interval      = 1000   // generate new block interval
 	MaxBlockSize_global = 500    // the block contains the maximum number of transactions
-	InjectSpeed         = 500    // the transaction inject speed
+	InjectSpeed         = 1000   // the transaction inject speed
 	TotalDataSize       = 100000 // the total number of txs
 	BatchSize           = 4000   // supervisor read a batch of txs then send them, it should be larger than inject speed
 	BrokerNum           = 10

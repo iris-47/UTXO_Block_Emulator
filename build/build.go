@@ -2,6 +2,7 @@ package build
 
 import (
 	"blockEmulator/consensus_shard/pbft_all"
+	"blockEmulator/consensus_shard/synchotstuff_all"
 	"blockEmulator/params"
 	"blockEmulator/supervisor"
 	"strconv"
@@ -51,8 +52,13 @@ func BuildSupervisor(nnm, snm, mod uint64) {
 	lsn.TcpListen()
 }
 
-func BuildNewPbftNode(nid, nnm, sid, snm, mod uint64) {
-	worker := pbft_all.NewPbftNode(sid, nid, initConfig(nid, nnm, sid, snm), params.CommitteeMethod[mod])
+func BuildNewNode(nid, nnm, sid, snm, mod uint64) {
+	var worker Worker
+	if params.UseSyncHotstuff {
+		worker = synchotstuff_all.NewSyncHotstuffNode(sid, nid, initConfig(nid, nnm, sid, snm), params.CommitteeMethod[mod])
+	} else {
+		worker = pbft_all.NewPbftNode(sid, nid, initConfig(nid, nnm, sid, snm), params.CommitteeMethod[mod])
+	}
 	if nid == 0 {
 		if params.UTXO {
 			go worker.TxTransform()
@@ -62,4 +68,10 @@ func BuildNewPbftNode(nid, nnm, sid, snm, mod uint64) {
 	} else {
 		worker.TcpListen()
 	}
+}
+
+type Worker interface {
+	TxTransform()
+	Propose()
+	TcpListen()
 }
