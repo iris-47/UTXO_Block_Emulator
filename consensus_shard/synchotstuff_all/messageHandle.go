@@ -119,10 +119,6 @@ func (node *SyncHotstuffConsensusNode) handlePropose(content []byte) {
 	flag := false
 	if digest := getDigest(pmsg.RequestMsg); string(digest) != string(pmsg.Digest) {
 		node.pl.Nlog.Printf("S%dN%d : the digest is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
-	} else if node.sequenceID < pmsg.SeqID {
-		node.requestPool[string(getDigest(pmsg.RequestMsg))] = pmsg.RequestMsg
-		node.height2Digest[pmsg.SeqID] = string(getDigest(pmsg.RequestMsg))
-		node.pl.Nlog.Printf("S%dN%d : the Sequence id is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
 	} else {
 		// do your operation in this interface
 		flag = node.ihm.HandleinPropose(pmsg)
@@ -226,10 +222,6 @@ func (node *SyncHotstuffConsensusNode) handleVote(content []byte) {
 		flag := false
 		if digest := getDigest(vmsg.RequestMsg); string(digest) != string(pmsg.Digest) {
 			node.pl.Nlog.Printf("S%dN%d : the digest is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
-		} else if node.sequenceID < pmsg.SeqID {
-			node.requestPool[string(getDigest(pmsg.RequestMsg))] = pmsg.RequestMsg
-			node.height2Digest[pmsg.SeqID] = string(getDigest(pmsg.RequestMsg))
-			node.pl.Nlog.Printf("S%dN%d : the Sequence id is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
 		} else {
 			// do your operation in this interface
 			flag = node.ihm.HandleinPropose(pmsg)
@@ -265,7 +257,6 @@ func (node *SyncHotstuffConsensusNode) handleVote(content []byte) {
 // now this function can send both block and partition
 func (node *SyncHotstuffConsensusNode) handleRequestOldSeq(content []byte) {
 	if node.view != node.NodeID {
-		content = make([]byte, 0)
 		return
 	}
 

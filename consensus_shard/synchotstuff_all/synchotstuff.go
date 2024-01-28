@@ -117,14 +117,15 @@ func NewSyncHotstuffNode(shardID, nodeID uint64, pcc *params.ChainConfig, messag
 			node.ohm = &RawUTXORelayOutsideModule{
 				node: node,
 			}
-		} else {
-			// p.ihm = &RawRelayPbftExtraHandleMod{
-			// 	pbftNode: p,
-			// }
-			// p.ohm = &RawRelayOutsideModule{
-			// 	pbftNode: p,
-			// }
 		}
+		// else {
+		// 	// p.ihm = &RawRelayPbftExtraHandleMod{
+		// 	// 	pbftNode: p,
+		// 	// }
+		// 	// p.ohm = &RawRelayOutsideModule{
+		// 	// 	pbftNode: p,
+		// 	// }
+		// }
 	}
 
 	return node
