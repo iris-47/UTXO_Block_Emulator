@@ -72,9 +72,9 @@ func (d *Supervisor) NewSupervisor(ip string, pcc *params.ChainConfig, committee
 	for _, mModName := range mearsureModNames {
 		switch mModName {
 		case "TPS_Relay":
-			d.testMeasureMods = append(d.testMeasureMods, measure.NewTestModule_avgTPS_Relay())
+			d.testMeasureMods = append(d.testMeasureMods, measure.NewTestModule_avgTPS_Relay(int(d.ChainConfig.ShardNums)))
 		case "TPS_Broker":
-			d.testMeasureMods = append(d.testMeasureMods, measure.NewTestModule_avgTPS_Broker())
+			d.testMeasureMods = append(d.testMeasureMods, measure.NewTestModule_avgTPS_Broker(int(d.ChainConfig.ShardNums)))
 		case "TCL_Relay":
 			d.testMeasureMods = append(d.testMeasureMods, measure.NewTestModule_TCL_Relay())
 		case "TCL_Broker":

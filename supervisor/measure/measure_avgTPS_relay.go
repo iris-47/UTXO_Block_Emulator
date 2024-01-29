@@ -11,16 +11,20 @@ type TestModule_avgTPS_Relay struct {
 	excutedTxNum []float64       // record how many excuted txs in a epoch, maybe the cross shard tx will be calculated as a 0.5 tx
 	relayTx      map[string]bool // record whether a relayTx or not
 	startTime    []time.Time     // record when the epoch starts
-	endTime      []time.Time     // record when the epoch ends
+	endTime      []time.Time     // record when the epoch ends、
+	duration     time.Duration
+	shardNum     int
 }
 
-func NewTestModule_avgTPS_Relay() *TestModule_avgTPS_Relay {
+func NewTestModule_avgTPS_Relay(shardNum int) *TestModule_avgTPS_Relay {
 	return &TestModule_avgTPS_Relay{
 		epochID:      -1,
 		excutedTxNum: make([]float64, 0),
 		startTime:    make([]time.Time, 0),
 		endTime:      make([]time.Time, 0),
 		relayTx:      make(map[string]bool),
+		duration:     time.Duration(0),
+		shardNum:     shardNum,
 	}
 }
 
@@ -37,6 +41,7 @@ func (tat *TestModule_avgTPS_Relay) UpdateMeasureRecord(b *message.BlockInfoMsg)
 	epochid := b.Epoch
 	earliestTime := b.ProposeTime
 	latestTime := b.CommitTime
+	tat.duration += latestTime.Sub(earliestTime)
 
 	// extend
 	for tat.epochID < epochid {
@@ -87,6 +92,6 @@ func (tat *TestModule_avgTPS_Relay) OutputRecord() (perEpochTPS []float64, total
 		// }
 	}
 	// totalTPS = totalTxNum / (lTime.Sub(eTime).Seconds())
-	totalTPS = totalTxNum / timeDuration
+	totalTPS = totalTxNum / tat.duration.Seconds()
 	return
 }

@@ -10,14 +10,18 @@ type TestModule_avgTPS_Broker struct {
 	excutedTxNum []float64   // record how many excuted txs in a epoch, maybe the cross shard tx will be calculated as a 0.5 tx
 	startTime    []time.Time // record when the epoch starts
 	endTime      []time.Time // record when the epoch ends
+	duration     time.Duration
+	shardNum     int
 }
 
-func NewTestModule_avgTPS_Broker() *TestModule_avgTPS_Broker {
+func NewTestModule_avgTPS_Broker(shardNum int) *TestModule_avgTPS_Broker {
 	return &TestModule_avgTPS_Broker{
 		epochID:      -1,
 		excutedTxNum: make([]float64, 0),
 		startTime:    make([]time.Time, 0),
 		endTime:      make([]time.Time, 0),
+		duration:     time.Duration(0),
+		shardNum:     shardNum,
 	}
 }
 
@@ -35,6 +39,7 @@ func (tat *TestModule_avgTPS_Broker) UpdateMeasureRecord(b *message.BlockInfoMsg
 	txNum := float64(len(b.ExcutedTxs))
 	earliestTime := b.ProposeTime
 	latestTime := b.CommitTime
+	tat.duration += latestTime.Sub(earliestTime)
 
 	// extend
 	for tat.epochID < epochid {
@@ -72,6 +77,7 @@ func (tat *TestModule_avgTPS_Broker) OutputRecord() (perEpochTPS []float64, tota
 			lTime = tat.endTime[eid]
 		}
 	}
-	totalTPS = totalTxNum / (lTime.Sub(eTime).Seconds())
+	// totalTPS = totalTxNum / (lTime.Sub(eTime).Seconds())
+	totalTPS = totalTxNum / tat.duration.Seconds()
 	return
 }

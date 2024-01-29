@@ -41,9 +41,10 @@ type SyncHotstuffConsensusNode struct {
 	pStop          chan uint64                 // channle for stopping consensus
 	pBreak         chan uint64                 // channel to interrupt the commit waiting process
 	requestPool    map[string]*message.Request // RequestHash to Request
-	isVoteBordcast map[string]bool             // denote whether the vote is broadcast
-	isReply        map[string]bool             // denote whether the message is reply
-	height2Digest  map[uint64]string           // sequence (block height) -> request, fast read
+	cntVoteConfirm map[string]int
+	isVoteBordcast map[string]bool   // denote whether the vote is broadcast
+	isReply        map[string]bool   // denote whether the message is reply
+	height2Digest  map[uint64]string // sequence (block height) -> request, fast read
 
 	// locks about pbft
 	sequenceLock sync.Mutex // the lock of sequence
@@ -97,6 +98,7 @@ func NewSyncHotstuffNode(shardID, nodeID uint64, pcc *params.ChainConfig, messag
 	node.sequenceID = node.CurChain.CurrentBlock.Header.Number + 1
 	node.pStop = make(chan uint64)
 	node.requestPool = make(map[string]*message.Request)
+	node.cntVoteConfirm = make(map[string]int)
 	node.isVoteBordcast = make(map[string]bool)
 	node.isReply = make(map[string]bool)
 	node.height2Digest = make(map[uint64]string)

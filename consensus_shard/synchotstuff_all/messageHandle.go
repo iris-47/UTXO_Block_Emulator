@@ -70,8 +70,8 @@ func (node *SyncHotstuffConsensusNode) Propose() {
 			return
 		default:
 		}
-		// Set MaxTimeLatency = 50ms
-		time.Sleep(time.Duration(3*params.MaxLatency) * time.Millisecond)
+		// Set MaxTimeLatency = 5ms
+		time.Sleep(4 * time.Duration(params.MaxLatency) * time.Millisecond)
 
 		node.sequenceLock.Lock()
 		node.pl.Nlog.Printf("S%dN%d get sequenceLock locked, now trying to propose...\n", node.ShardID, node.NodeID)
@@ -106,6 +106,13 @@ func (node *SyncHotstuffConsensusNode) Propose() {
 		node.height2Digest[pmsg.SeqID] = string(getDigest(pmsg.RequestMsg))
 
 		go node.WaitToCommit(&pmsg)
+
+		// // mimic the CvBlock
+		// for {
+		// 	if node.cntVoteConfirm[string(digest)] == int(node.node_nums) {
+		// 		break
+		// 	}
+		// }
 	}
 }
 
@@ -116,17 +123,9 @@ func (node *SyncHotstuffConsensusNode) handlePropose(content []byte) {
 	if err != nil {
 		log.Panic(err)
 	}
-	flag := false
-	if digest := getDigest(pmsg.RequestMsg); string(digest) != string(pmsg.Digest) {
-		node.pl.Nlog.Printf("S%dN%d : the digest is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
-	} else {
-		// do your operation in this interface
-		flag = node.ihm.HandleinPropose(pmsg)
-		node.requestPool[string(getDigest(pmsg.RequestMsg))] = pmsg.RequestMsg
-		node.height2Digest[pmsg.SeqID] = string(getDigest(pmsg.RequestMsg))
-	}
-	// if the message is true, broadcast the prepare message
-	if flag {
+
+	// it has already been commited(block from another vote)
+	if _, ok := node.requestPool[string(pmsg.Digest)]; ok {
 		vote := message.Vote{
 			RequestMsg: pmsg.RequestMsg,
 			Digest:     pmsg.Digest,
@@ -141,9 +140,36 @@ func (node *SyncHotstuffConsensusNode) handlePropose(content []byte) {
 		msg_send := message.MergeMessage(message.CVote, voteByte)
 		networks.Broadcast(node.RunningNode.IPaddr, node.getNeighborNodes(), msg_send)
 		node.pl.Nlog.Printf("S%dN%d : has broadcast the vote message \n", node.ShardID, node.NodeID)
+	} else {
+		flag := false
+		if digest := getDigest(pmsg.RequestMsg); string(digest) != string(pmsg.Digest) {
+			node.pl.Nlog.Printf("S%dN%d : the digest is not consistent, so refuse to commit. \n", node.ShardID, node.NodeID)
+		} else {
+			// do your operation in this interface
+			flag = node.ihm.HandleinPropose(pmsg)
+			node.requestPool[string(getDigest(pmsg.RequestMsg))] = pmsg.RequestMsg
+			node.height2Digest[pmsg.SeqID] = string(getDigest(pmsg.RequestMsg))
+		}
+		// if the message is true, broadcast the prepare message
+		if flag {
+			vote := message.Vote{
+				RequestMsg: pmsg.RequestMsg,
+				Digest:     pmsg.Digest,
+				SeqID:      pmsg.SeqID,
+				SenderNode: node.RunningNode,
+			}
+			voteByte, err := json.Marshal(vote)
+			if err != nil {
+				log.Panic()
+			}
+			// broadcast
+			msg_send := message.MergeMessage(message.CVote, voteByte)
+			networks.Broadcast(node.RunningNode.IPaddr, node.getNeighborNodes(), msg_send)
+			node.pl.Nlog.Printf("S%dN%d : has broadcast the vote message \n", node.ShardID, node.NodeID)
 
-		// commit
-		go node.WaitToCommit(pmsg)
+			// commit
+			go node.WaitToCommit(pmsg)
+		}
 	}
 }
 
@@ -207,11 +233,21 @@ func (node *SyncHotstuffConsensusNode) handleVote(content []byte) {
 		log.Panic(err)
 	}
 
+	if node.NodeID == node.view {
+		if _, ok := node.cntVoteConfirm[string(vmsg.Digest)]; !ok {
+			node.cntVoteConfirm[string(vmsg.Digest)] = 0
+		}
+		node.cntVoteConfirm[string(vmsg.Digest)] += 1
+	}
+
 	// an equivocate vote has received
 	if string(vmsg.Digest) != node.height2Digest[vmsg.SeqID] && vmsg.SeqID == node.sequenceID {
 		node.pBreak <- 1
 		node.pl.Nlog.Printf("S%dN%d get an equivocate vote from node %v...\n", node.ShardID, node.NodeID, vmsg.SenderNode)
 	} else if vmsg.SeqID > node.sequenceID {
+		if _, ok := node.requestPool[string(vmsg.Digest)]; ok {
+			return // a block which has already been commited
+		}
 		// get a propose from vote message instead of a propose message
 		node.pl.Nlog.Printf("S%dN%d get an new vote from node %v...\n", node.ShardID, node.NodeID, vmsg.SenderNode)
 		pmsg := &message.Propose{

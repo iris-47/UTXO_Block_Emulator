@@ -1,7 +1,7 @@
 package params
 
 var (
-	MaxLatency          = 50 // the maximum of network delay(ms)
+	MaxLatency          = 5 // the maximum of network delay(ms)
 	UTXO                = false
 	UseSyncHotstuff     = false
 	TxInputCount        = 20000
