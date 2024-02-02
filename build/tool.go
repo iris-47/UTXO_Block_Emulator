@@ -77,16 +77,16 @@ func GenerateShellFile(nodenum, shardnum, modID int, isUTXO bool, useSyncHotstuf
 	ofile.WriteString(str1)
 	for j := 0; j < shardnum; j++ {
 		for i := 1; i < nodenum; i++ {
-			str = fmt.Sprintf("go run main.go -n %d -N %d -s %d -S %d -m %d %s &\n\n", i, nodenum, j, shardnum, modID, addons)
+			str = fmt.Sprintf("go run main.go -n %d -N %d -s %d -S %d -m %d%s &\n\n", i, nodenum, j, shardnum, modID, addons)
 			ofile.WriteString(str)
 		}
 	}
 
-	str = fmt.Sprintf("go run main.go -c -N %d -S %d -m %d %s&\n\n", nodenum, shardnum, modID, addons)
+	str = fmt.Sprintf("go run main.go -c -N %d -S %d -m %d%s&\n\n", nodenum, shardnum, modID, addons)
 
 	ofile.WriteString(str)
 	for j := 0; j < shardnum; j++ {
-		str = fmt.Sprintf("go run main.go -n 0 -N %d -s %d -S %d -m %d %s &\n\n", nodenum, j, shardnum, modID, addons)
+		str = fmt.Sprintf("go run main.go -n 0 -N %d -s %d -S %d -m %d%s &\n\n", nodenum, j, shardnum, modID, addons)
 		ofile.WriteString(str)
 	}
 }
