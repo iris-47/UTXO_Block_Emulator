@@ -102,12 +102,13 @@ func (urhm *RawUTXORelayExtraHandleMod) Commit(pmsg *message.Propose) bool {
 		bim := message.BlockInfoMsg{
 			BlockBodyLength: len(block.UTXO),
 			ExcutedTxs:      MakeupTxExcuted,
-			Epoch:           int(block.Header.Number), // use this field as block height
-			Relay1Txs:       MakeupTxRelayed,
-			Relay1TxNum:     uint64(len(relay1Txs)),
-			SenderShardID:   urhm.node.ShardID,
-			ProposeTime:     r.ReqTime,
-			CommitTime:      time.Now(),
+			// Epoch:           int(block.Header.Number), // use this field as block height
+			Epoch:         0,
+			Relay1Txs:     MakeupTxRelayed,
+			Relay1TxNum:   uint64(len(relay1Txs)),
+			SenderShardID: urhm.node.ShardID,
+			ProposeTime:   r.ReqTime,
+			CommitTime:    time.Now(),
 		}
 		bByte, err := json.Marshal(bim)
 		if err != nil {

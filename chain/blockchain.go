@@ -24,15 +24,16 @@ import (
 )
 
 type BlockChain struct {
-	db           ethdb.Database      // the leveldb database to store in the disk, for status trie
-	triedb       *trie.Database      // the trie database which helps to store the status trie
-	ChainConfig  *params.ChainConfig // the chain configuration, which can help to identify the chain
-	CurrentBlock *core.Block         // the top block in this blockchain
-	Storage      *storage.Storage    // Storage is the bolt-db to store the blocks
-	Txpool       *core.TxPool        // the transaction pool
-	UTXOTxpool   *core.UTXOTxPool    // the utxo transaction pool
-	PartitionMap map[string]uint64   // the partition map which is defined by some algorithm can help account parition
-	pmlock       sync.RWMutex
+	db            ethdb.Database      // the leveldb database to store in the disk, for status trie
+	triedb        *trie.Database      // the trie database which helps to store the status trie
+	ChainConfig   *params.ChainConfig // the chain configuration, which can help to identify the chain
+	CurrentBlock  *core.Block         // the top block in this blockchain
+	Storage       *storage.Storage    // Storage is the bolt-db to store the blocks
+	Txpool        *core.TxPool        // the transaction pool
+	UTXOTxpool    *core.UTXOTxPool    // the utxo transaction pool
+	PartitionMap  map[string]uint64   // the partition map which is defined by some algorithm can help account parition
+	pmlock        sync.RWMutex
+	UTXOStateRoot []byte
 }
 
 // Get the transaction root, this root can be used to check the transactions
@@ -204,6 +205,14 @@ func (bc *BlockChain) NewGenisisBlock() *core.Block {
 	var b *core.Block
 	if params.UTXO {
 		UTXO := make([]*core.UTXOTransaction, 0)
+		triedb := trie.NewDatabaseWithConfig(bc.db, &trie.Config{
+			Cache:     0,
+			Preimages: true,
+		})
+		bc.triedb = triedb
+		statusTrie := trie.NewEmpty(triedb)
+		bc.UTXOStateRoot = statusTrie.Hash().Bytes()
+
 		bh.TxRoot = GetUTXOTxTreeRoot(UTXO)
 		b = core.NewBlock(bh, nil, UTXO)
 
@@ -334,21 +343,35 @@ func (bc *BlockChain) NewUTXOTransaction(from, to string, amount *big.Int) (*cor
 	var inputs []core.TxIn
 	var outputs []core.TxOut
 	var coinbase *core.UTXOTransaction = nil
+	var validOutputs map[string][]int
+	var acc *big.Int
 
 	Pubkey := []byte(from) //This is done temporarily as a makeshift solution.
 	SenderPubkeyHash := sha256.Sum256(Pubkey)
 
-	acc, validOutputs := bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+	acc, validOutputs = bc.FindSpendableOutputsFromStatusTrie(SenderPubkeyHash[:], amount)
 
-	if len(validOutputs) == 0 {
+	// generate a new coinbase Tx
+	if acc.Cmp(big.NewInt(-1)) == 0 || acc.Cmp(big.NewInt(0)) == 0 {
 		coinbase = core.NewCoinbaseTX(SenderPubkeyHash[:], amount, nil)
-		bc.AddTx2UTXOSet(coinbase)
-		acc, validOutputs = bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+		acc = amount
+		validOutputs = make(map[string][]int)
+		validOutputs[hex.EncodeToString(coinbase.TxId)] = append(validOutputs[string(coinbase.TxId)], 0)
 	}
+	// } else if acc.Cmp(big.NewInt(0)) == 0 {
+	// 	return nil, nil
+	// }
 
-	if acc.Cmp(amount) == -1 {
-		return nil, nil
-	}
+	//// old version
+	// acc, validOutputs = bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+	// if len(validOutputs) == 0 {
+	// 	coinbase = core.NewCoinbaseTX(SenderPubkeyHash[:], amount, nil)
+	// 	bc.AddTx2UTXOSet(coinbase)
+	// 	acc, validOutputs = bc.FindSpendableOutputs(SenderPubkeyHash[:], amount)
+	// }
+	// if acc.Cmp(amount) == -1 {
+	// 	return nil, nil
+	// }
 
 	// Build a list of inputs
 	for txid, outindexs := range validOutputs {

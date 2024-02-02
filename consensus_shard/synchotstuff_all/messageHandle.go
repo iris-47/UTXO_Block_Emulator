@@ -36,12 +36,14 @@ func (node *SyncHotstuffConsensusNode) TxTransform() {
 			if coinbase != nil { // coinbase
 				txs = append(txs, coinbase)
 				txs = append(txs, tx)
-				node.CurChain.AddTx2UTXOSet(tx)
+				// node.CurChain.AddTx2UTXOSet(tx)
+				node.CurChain.AddUTXO2StatusTrie(tx)
 			} else if tx == nil { // insufficient
 				continue
 			} else { // normal
 				txs = append(txs, tx)
-				node.CurChain.AddTx2UTXOSet(tx)
+				// node.CurChain.AddTx2UTXOSet(tx)
+				node.CurChain.AddUTXO2StatusTrie(tx)
 			}
 		}
 

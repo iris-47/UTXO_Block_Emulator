@@ -6,8 +6,11 @@ import (
 	"encoding/hex"
 	"log"
 	"math/big"
+	"math/rand"
 
 	"github.com/boltdb/bolt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 const blockBucket = "block"
@@ -263,4 +266,124 @@ func (bc *BlockChain) AddTx2UTXOSet(utxotx *core.UTXOTransaction) {
 	if err != nil {
 		log.Panic(err)
 	}
+}
+
+// Find UTXOs and Update StatusTrie
+func (bc *BlockChain) FindSpendableOutputsFromStatusTrie(pubkeyHash []byte, amount *big.Int) (*big.Int, map[string][]int) {
+	unspentOutputs := make(map[string][]int)
+	accumulated := big.NewInt(0)
+
+	st, err := trie.New(trie.TrieID(common.BytesToHash(bc.UTXOStateRoot)), bc.triedb)
+	if err != nil {
+		log.Panic(err)
+	}
+	s_state_enc, _ := st.Get([]byte(pubkeyHash))
+	var s_state *core.UTXOAccountState
+	if s_state_enc == nil {
+		// missing account SENDER, now adding account
+		s_state = &core.UTXOAccountState{
+			PubkeyHash: pubkeyHash,
+			Nonce:      rand.Uint64(),
+			Balance:    big.NewInt(0),
+			UTXOs:      make(map[string]map[int]*big.Int),
+		}
+		accumulated = big.NewInt(-1)
+		unspentOutputs = nil
+	} else {
+		s_state = core.DecodeUAS(s_state_enc)
+		if s_state.Balance.Cmp(amount) == -1 {
+			return big.NewInt(0), nil // indicate that insufficient fund
+		} else {
+			for txid, txOut := range s_state.UTXOs {
+				if err != nil {
+					log.Panic(err)
+				}
+
+				for outId, value := range txOut {
+					accumulated.Add(accumulated, value)
+					s_state.Balance.Sub(s_state.Balance, value)
+					unspentOutputs[txid] = append(unspentOutputs[txid], outId)
+					delete(txOut, outId)
+
+					if accumulated.Cmp(amount) == 1 {
+						break
+					}
+				}
+
+				if len(txOut) == 0 {
+					delete(s_state.UTXOs, txid)
+				}
+
+				if accumulated.Cmp(amount) == 1 {
+					break
+				}
+			}
+		}
+	}
+	st.Update(pubkeyHash, s_state.Encode())
+
+	rt, ns := st.Commit(false)
+	// fmt.Println("rt = ", rt, "ns = ", ns)
+	err = bc.triedb.Update(trie.NewWithNodeSet(ns))
+	if err != nil {
+		log.Panic()
+	}
+	err = bc.triedb.Commit(rt, false)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	bc.UTXOStateRoot = rt.Bytes()
+	return accumulated, unspentOutputs
+}
+
+func (bc *BlockChain) AddUTXO2StatusTrie(tx *core.UTXOTransaction) {
+	if tx == nil {
+		return
+	}
+
+	st, err := trie.New(trie.TrieID(common.BytesToHash(bc.UTXOStateRoot)), bc.triedb)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for index, Vout := range tx.Vout {
+		s_state_enc, _ := st.Get(Vout.PubKeyHash)
+		var s_state *core.UTXOAccountState
+
+		if s_state_enc == nil {
+			// missing account RECIEVER, now adding account
+			// fmt.Println("missing account RECIEVER, now adding account")
+			s_state = &core.UTXOAccountState{
+				PubkeyHash: Vout.PubKeyHash,
+				Nonce:      rand.Uint64(),
+				Balance:    big.NewInt(0),
+				UTXOs:      make(map[string]map[int]*big.Int),
+			}
+		} else {
+			s_state = core.DecodeUAS(s_state_enc)
+		}
+		if _, ok := s_state.UTXOs[hex.EncodeToString(tx.TxId)]; !ok {
+			UTXO := make(map[int]*big.Int)
+			UTXO[index] = Vout.Value
+			s_state.UTXOs[hex.EncodeToString(tx.TxId)] = UTXO
+		} else {
+			s_state.UTXOs[hex.EncodeToString(tx.TxId)][index] = Vout.Value
+		}
+		s_state.Balance.Add(s_state.Balance, Vout.Value)
+
+		st.Update(Vout.PubKeyHash, s_state.Encode())
+	}
+
+	rt, ns := st.Commit(false)
+	err = bc.triedb.Update(trie.NewWithNodeSet(ns))
+	if err != nil {
+		log.Panic()
+	}
+	err = bc.triedb.Commit(rt, false)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	bc.UTXOStateRoot = rt.Bytes()
 }

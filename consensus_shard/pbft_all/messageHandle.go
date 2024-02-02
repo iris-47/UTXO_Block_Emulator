@@ -33,12 +33,14 @@ func (p *PbftConsensusNode) TxTransform() {
 			if coinbase != nil { // coinbase
 				txs = append(txs, coinbase)
 				txs = append(txs, tx)
-				p.CurChain.AddTx2UTXOSet(tx)
+				// p.CurChain.AddTx2UTXOSet(tx)
+				p.CurChain.AddUTXO2StatusTrie(tx)
 			} else if tx == nil { // insufficient
 				continue
 			} else { // normal
 				txs = append(txs, tx)
-				p.CurChain.AddTx2UTXOSet(tx)
+				// p.CurChain.AddTx2UTXOSet(tx)
+				p.CurChain.AddUTXO2StatusTrie(tx)
 			}
 		}
 
